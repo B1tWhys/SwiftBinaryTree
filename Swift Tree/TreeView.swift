@@ -20,6 +20,8 @@ class TreeView: UIView {
     }
     var numberOfLines = 0
     override func drawRect(rect: CGRect) {
+        var array = [UIBezierPath]()
+        
         // set the color to stroke the tree with. This is really done with the setStroke instance method on UIColor
         let treeColor = UIColor(red: 117.0/256.0, green: 54.0/256.0, blue: 0.0/256.0, alpha: 256.0/256.0)
         treeColor.setStroke()
@@ -33,8 +35,9 @@ class TreeView: UIView {
         let startingPoint = CGPoint(x: rect.width/2, y: rect.height)
         path.moveToPoint(startingPoint) // here we set the starting point for the Bezier turtle.
         path.addLineToPoint(CGPoint(x: (startingPoint.x), y: (startingPoint.y - CGFloat(100))))
+        path.stroke()
         var time = NSDate()
-        self.drawLevelsFrom(1, lastRads: M_PI/2, path: path) // this is the recursive method.
+        self.drawLevelsFrom(1, startingPoint: path.currentPoint, lastRads: M_PI/2) // this is the recursive method.
         let timeToGenerate = -time.timeIntervalSinceNow
         print("Time to generate line: \(timeToGenerate)")
         // this renders the path. NOTE: do all this in the drawRect method. If you try to stroke in the wrong place, it won't work.
@@ -50,10 +53,8 @@ class TreeView: UIView {
     let lineLengthConstant = 20 // as recursion depth tends toward infinity, the total height of the tree tends toward 2*lineLengthConstant (I think. I've never formally learned sums of infinite series.)
     let lengthConst = 100.0
 
-    func drawLevelsFrom(currentLevel: Int, lastRads: Double, path: UIBezierPath) -> Void {
+    func drawLevelsFrom(currentLevel: Int, startingPoint: CGPoint, lastRads: Double) -> Void {
         if (currentLevel <= self.depthToDrawTo) { // we check to see if we are done by comparing the current level to the desired depth
-            let startingPoint = path.currentPoint // we cache the starting point, since we are going to have to come back here after we draw the right branch
-
             // calculate where the right branch ends.
             var rads = lastRads - radians
             var yVal: Double {
@@ -82,20 +83,24 @@ class TreeView: UIView {
             
             
 //            var newPoint = CGPoint(x: path.currentPoint.x + CGFloat(lineLengthConstant/currentLevel), y: path.currentPoint.y - CGFloat(lineLengthConstant/currentLevel))
-            var newPoint = CGPoint(x: path.currentPoint.x + CGFloat(xAddition), y: path.currentPoint.y - CGFloat(yAddition))
+            var newPoint = CGPoint(x: startingPoint.x + CGFloat(xAddition), y: startingPoint.y - CGFloat(yAddition))
             // add the line
-            path.addLineToPoint(newPoint)
+            var newPath = UIBezierPath()
+            newPath.moveToPoint(startingPoint)
+            newPath.addLineToPoint(newPoint)
+            newPath.stroke()
             // recurse
-            self.drawLevelsFrom(currentLevel + 1, lastRads: rads, path: path)
+            self.drawLevelsFrom(currentLevel + 1, startingPoint: newPoint, lastRads: rads)
             
             rads = lastRads + radians
             
-            // the recurse usually leaves us somewhere a zillion miles away, and so we need to move ourselves back to our starting point. Then we do the same thing that we did on the right, but on the left.
-            path.moveToPoint(startingPoint)
+            newPoint = CGPoint(x: startingPoint.x + CGFloat(xAddition), y: startingPoint.y - CGFloat(yAddition))
+            newPath = UIBezierPath()
+            newPath.moveToPoint(startingPoint)
+            newPath.addLineToPoint(newPoint)
+            newPath.stroke()
             
-            newPoint = CGPoint(x: path.currentPoint.x + CGFloat(xAddition), y: path.currentPoint.y - CGFloat(yAddition))
-            path.addLineToPoint(newPoint)
-            self.drawLevelsFrom(currentLevel + 1, lastRads: rads, path: path)
+            self.drawLevelsFrom(currentLevel + 1, startingPoint: newPoint, lastRads: rads)
         }
     }
 }
